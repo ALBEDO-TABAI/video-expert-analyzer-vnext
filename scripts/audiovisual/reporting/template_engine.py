@@ -393,6 +393,7 @@ def build_template_context(data: Dict, route: Dict[str, Any]) -> Dict[str, str]:
         "content_synopsis_data": _build_content_synopsis_data(data, route, scenes),
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
+    context.update(_dimension_eval_context({}))
     builder = _ROUTE_CONTEXT_BUILDERS.get(_safe_text(route.get("framework")))
     if builder is None:
         raise KeyError(f"Unsupported template route: {route.get('framework')}")
@@ -1401,6 +1402,8 @@ def _assemble_final_report(
     except ValueError as exc:
         _dump_validation_errors(report_dir, body, required_sections or (), str(exc))
         raise
+    body, dimension_evals = _extract_dimension_evaluations(body)
+    context = {**context, **_dimension_eval_context(dimension_evals)}
     body = _inject_figure_blocks(body, data, route, report_dir)
     body = _inject_python_direct_blocks(body, python_direct_blocks, context)
     body = _cleanup_markers(body)
@@ -1420,12 +1423,7 @@ def _assemble_final_report(
 def _inject_figure_blocks(body: str, data: Dict, route: Dict[str, Any], report_dir: Path | None) -> str:
     specs = _highlight_specs_for_route(data, route)
     markers = _FIGURE_RE.findall(body)
-    rendered_blocks = [_render_figure_block(_with_marker_rationale(spec, ""), report_dir) for spec in specs]
-    rendered_blocks = [block for block in rendered_blocks if block]
-
     if not markers:
-        if rendered_blocks:
-            return body + "\n\n" + "\n\n".join(rendered_blocks)
         return body
 
     # Build a name-based lookup from specs
@@ -1535,6 +1533,76 @@ def _split_body_sections_detailed(text: str) -> Dict[str, Dict[str, Any]]:
 
 def _distinct_scene_numbers(text: str) -> set[str]:
     return {match.group(1).lstrip("0") or "0" for match in _SCENE_NUMBER_RE.finditer(text)}
+
+
+_DIMENSION_LABELS: Sequence[tuple[str, str]] = (
+    ("impact", "冲击力"),
+    ("aesthetic", "美学"),
+    ("memorability", "记忆度"),
+    ("fun", "趣味性"),
+    ("credibility", "可信度"),
+    ("info_efficiency", "信息效率"),
+)
+_DIMENSION_FALLBACK_DESCRIPTIONS: Dict[str, str] = {
+    "impact": "未给出本片冲击力评价。",
+    "aesthetic": "未给出本片美学评价。",
+    "memorability": "未给出本片记忆度评价。",
+    "fun": "未给出本片趣味性评价。",
+    "credibility": "未给出本片可信度评价。",
+    "info_efficiency": "未给出本片信息效率评价。",
+}
+_DIMENSION_EVAL_HEADING = "## 维度速评"
+_DIMENSION_EVAL_LINE_RE = re.compile(
+    r"^\s*[-*+]\s*\**\s*(冲击力|美学|记忆度|趣味性|可信度|信息效率)\s*[**]*\s*[:：]\s*(.+?)\s*$"
+)
+
+
+def _extract_dimension_evaluations(body: str) -> tuple[str, Dict[str, str]]:
+    """Pull the trailing `## 维度速评` block out of the agent body and parse its 6 lines.
+
+    Returns (body_without_block, {english_key: chinese_eval}).
+    Returns the original body unchanged when the block is missing or empty.
+    """
+    sections = _split_body_sections_detailed(body)
+    section_info = sections.get(_DIMENSION_EVAL_HEADING)
+    if not section_info:
+        return body, {}
+
+    label_to_key = {label: key for key, label in _DIMENSION_LABELS}
+    parsed: Dict[str, str] = {}
+    for line in section_info["body"].splitlines():
+        match = _DIMENSION_EVAL_LINE_RE.match(line.strip())
+        if not match:
+            continue
+        key = label_to_key.get(match.group(1))
+        if key and key not in parsed:
+            parsed[key] = match.group(2).strip()
+
+    if not parsed:
+        return body, {}
+
+    new_lines: List[str] = []
+    skipping = False
+    for line in body.splitlines():
+        stripped = line.strip()
+        if stripped == _DIMENSION_EVAL_HEADING:
+            skipping = True
+            continue
+        if skipping and stripped.startswith("## ") and stripped != _DIMENSION_EVAL_HEADING:
+            skipping = False
+        if skipping:
+            continue
+        new_lines.append(line)
+
+    return "\n".join(new_lines).rstrip() + "\n", parsed
+
+
+def _dimension_eval_context(dimension_evals: Dict[str, str]) -> Dict[str, str]:
+    """Build {{eval_*}} placeholders for the scoring table; fall back to fixed descriptions."""
+    return {
+        f"eval_{key}": dimension_evals.get(key) or _DIMENSION_FALLBACK_DESCRIPTIONS[key]
+        for key, _label in _DIMENSION_LABELS
+    }
 
 
 def _strip_formatting_for_count(text: str) -> str:

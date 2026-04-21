@@ -321,7 +321,37 @@ def build_raw_prompt_user_message(
             min_scene_evidence_per_section=min_scene_evidence_per_section,
         )
     )
+    lines.extend(_build_dimension_eval_block())
     return "\n".join(part for part in lines if part is not None).strip()
+
+
+def _build_dimension_eval_block() -> List[str]:
+    """Append a small block asking the agent to add a `## 维度速评` section after the body.
+
+    The script extracts these 6 lines and uses them to populate the 「维度评分表」 final table,
+    so each dimension shows how the current video performs instead of a generic definition.
+    """
+    return [
+        "",
+        "## 维度速评（写在正文最后，必须出现）",
+        "",
+        "在所有上述 `##` 模块写完之后，**追加** 一个 `## 维度速评` 模块（不计入正文模块字数与 Scene 证据要求），按下面的字面格式给出 6 条针对当前视频的具体表现评价：",
+        "",
+        "```",
+        "## 维度速评",
+        "- 冲击力：<本片在「冲击力」维度的具体表现，落到镜头/段落，并引一个 Scene 编号或时间戳作证；30~80 字>",
+        "- 美学：<同上格式>",
+        "- 记忆度：<同上格式>",
+        "- 趣味性：<同上格式>",
+        "- 可信度：<同上格式>",
+        "- 信息效率：<同上格式>",
+        "```",
+        "",
+        "硬约束：",
+        "- 6 条必须按上述顺序出现，字面字段名严格一致（`冲击力 / 美学 / 记忆度 / 趣味性 / 可信度 / 信息效率`），脚本会按字段名抽取这 6 行去替换最终报告里「维度评分表」第三列。",
+        "- 每条必须落到具体镜头、段落或数据，禁止空洞套话与维度定义复述；禁止编造未出现在分镜表里的细节。",
+        "- 不要给这一段加 `###` 子条目；保持 6 行 `- 维度名：…` 的扁平结构。",
+    ]
 
 
 def _build_output_scaffold_block(

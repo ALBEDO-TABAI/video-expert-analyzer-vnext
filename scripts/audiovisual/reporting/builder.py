@@ -276,7 +276,7 @@ def _build_illustrate_user_message(markdown_text: str, catalog: Sequence[Dict[st
             "## 任务",
             "",
             "下方是一份视听剖析 Markdown 报告。请仅在 `## 正文模块` 里被提及到 Scene 的段落之后，"
-            "按「场景目录」里给出的截图路径，插入一行 `![简短说明](<截图路径>)`。保留其余所有字符不变。",
+            "按「场景目录」里给出的截图路径，插入一行 `![Scene NNN](<截图路径>)`。保留其余所有字符不变。",
             "",
             "## 插图规则",
             "",
@@ -285,7 +285,8 @@ def _build_illustrate_user_message(markdown_text: str, catalog: Sequence[Dict[st
             "3. 同一张图不要在连续 3 段之内重复出现；若只能用同一张，就跳过后出现的那次。",
             "4. `## 路由判断`、`## 视听剖析概览 / 视频结构图 / 视频内容架构总览` 等已带自有图示的模块不要再追加截图；"
             "报告首尾的标题、生成时间、代码块、表格内部也不要插图。",
-            "5. 简短说明控制在 20 个汉字以内，格式建议：`Scene NNN · 时间戳 · 画面要点`；画面要点可压缩自「场景目录」。",
+            "5. 图下方的小字说明（Scene 编号 · 画面要点）会由脚本根据「场景目录」自动补，不需要你写。"
+            "`![alt](<截图路径>)` 的 alt 用 `Scene NNN`（NNN 为 3 位数 Scene 编号）即可，不要写画面描述。",
             "6. 截图路径必须来自下方目录，不要凭空编造；找不到对应 Scene 就跳过插图。",
             "7. 不要重写、合并、删减任何原文，也不要改动已有 Markdown 图片链接；脚本会在之后再跑一次链接规范化。",
             "",
@@ -338,6 +339,67 @@ def _validate_illustrated_markdown(
             window = window[-3:]
 
 
+_CAPTION_PREFIX = "*Scene "
+
+
+def _format_image_caption(item: Dict[str, Any]) -> str:
+    """Render the small italic caption shown right under an illustrate-inserted screenshot."""
+    scene_num = int(item.get("scene_number") or 0)
+    visual = str(item.get("visual") or "").strip()
+    parts = [f"Scene {scene_num:03d}"]
+    timestamp = str(item.get("timestamp") or "").strip()
+    if timestamp:
+        parts.append(timestamp)
+    if visual:
+        parts.append(f"画面：{visual}")
+    return f"*{' · '.join(parts)}*"
+
+
+def _is_existing_caption_line(line: str) -> bool:
+    return line.lstrip().startswith(_CAPTION_PREFIX)
+
+
+def _annotate_image_captions(
+    illustrated: str,
+    original: str,
+    catalog: Sequence[Dict[str, Any]],
+) -> str:
+    """Insert a small italic caption (`*Scene NNN · 画面：…*`) under each newly-inserted image.
+
+    Pre-existing images (from FIGURE blocks, etc.) already carry their own `- 图注：…`
+    bullet, so we leave them alone.
+    """
+    catalog_index: Dict[str, Dict[str, Any]] = {
+        str(item.get("rel_path", "")).strip(): item
+        for item in catalog
+        if str(item.get("rel_path", "")).strip()
+    }
+    if not catalog_index:
+        return illustrated
+    pre_existing = set(_extract_image_paths(original))
+
+    lines = illustrated.split("\n")
+    out: List[str] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        out.append(line)
+        match = _IMAGE_LINK_RE.search(line.strip())
+        if match:
+            path = match.group(1).strip()
+            item = catalog_index.get(path)
+            if item is not None and path not in pre_existing:
+                lookahead = 1
+                while i + lookahead < len(lines) and not lines[i + lookahead].strip():
+                    lookahead += 1
+                next_line = lines[i + lookahead] if i + lookahead < len(lines) else ""
+                if not _is_existing_caption_line(next_line):
+                    out.append("")
+                    out.append(_format_image_caption(item))
+        i += 1
+    return "\n".join(out)
+
+
 def _maybe_illustrate_markdown(
     markdown_text: str,
     data: Dict,
@@ -350,7 +412,7 @@ def _maybe_illustrate_markdown(
     user_message = _build_illustrate_user_message(markdown_text, catalog)
     illustrated = coordinator.request_illustrate(_ILLUSTRATE_SYSTEM_PROMPT, user_message)
     _validate_illustrated_markdown(illustrated, markdown_text, catalog)
-    return illustrated
+    return _annotate_image_captions(illustrated, markdown_text, catalog)
 
 
 def generate_audiovisual_report_outputs(

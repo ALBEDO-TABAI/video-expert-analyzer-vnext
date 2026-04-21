@@ -1808,7 +1808,7 @@ def test_raw_prompt_path_keeps_alignment_and_scoring_blocks(
     markdown = report_builder.build_audiovisual_report_markdown(payload)
 
     assert "**视听对齐度**" in markdown
-    assert "| 维度 | 平均分 | 这一维在看什么 |" in markdown
+    assert "| 维度 | 平均分 | 本片在这一维的表现 |" in markdown
     assert "<!-- PYTHON_DIRECT:" not in markdown
 
 
