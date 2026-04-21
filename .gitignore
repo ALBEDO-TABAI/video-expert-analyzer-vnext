@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Output
+output/
+*.mp4
+*.m4a
+*.srt
+*.wav
+
+# Runtime logs
+*.log
+log.txt
+
+# Temporary batch reports
+batch_*_report.md
+
+# Generated caches and temporary host artifacts
+.pytest_cache/
+.tmp-contact-sheets/
+.claude/
+tmp-bench/
+System.Management.Automation.Internal.Host.InternalHost/
+run_state.json
+delivery_report.json
+analysis_state.json
+scene_scores.json
+host_batches/
+scene_reports/
+frames/
+scenes/
+
+# Internal dev docs
+docs/superpowers/

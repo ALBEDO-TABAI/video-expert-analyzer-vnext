@@ -1,0 +1,21 @@
+# Core video processing
+yt-dlp>=2024.1
+scenedetect[opencv]>=0.6
+ffmpeg-python>=0.2
+
+# AI / ML
+openai>=1.0
+anthropic>=0.20
+funasr>=1.0
+modelscope>=1.9
+torch>=2.0
+mlx-whisper>=0.1
+
+# OCR & imaging
+rapidocr-onnxruntime>=1.3
+Pillow>=10.0
+numpy>=1.24
+
+# Network & browser
+requests>=2.31
+browser_cookie3>=0.19
