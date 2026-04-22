@@ -20,8 +20,11 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
-from scenedetect import AdaptiveDetector, ContentDetector, open_video
-from scenedetect.scene_manager import SceneManager
+try:
+    from scenedetect import AdaptiveDetector, ContentDetector, open_video
+    from scenedetect.scene_manager import SceneManager
+except ImportError:  # pragma: no cover - dependency is available in the app runtime
+    AdaptiveDetector = ContentDetector = open_video = SceneManager = None
 
 try:
     import download_douyin as DouyinDownloader

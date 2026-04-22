@@ -12,7 +12,10 @@ try:
 except ImportError:  # pragma: no cover - dependency is available in the app runtime
     Anthropic = None
 
-from openai import OpenAI
+try:
+    from openai import OpenAI
+except ImportError:  # pragma: no cover - dependency is available in the app runtime
+    OpenAI = None
 
 
 DEFAULT_MAX_OUTPUT_TOKENS = 1200
@@ -160,6 +163,8 @@ def _call_openai_completions(
     max_output_tokens: int,
     temperature: float,
 ) -> str:
+    if OpenAI is None:  # pragma: no cover - runtime dependency exists in app
+        raise RuntimeError("当前环境未安装 openai 库")
     client = OpenAI(
         api_key=provider_config.get("apiKey", ""),
         base_url=_normalize_base_url("openai-completions", provider_config.get("baseUrl", "")),
@@ -187,6 +192,8 @@ def _call_openai_responses(
     *,
     max_output_tokens: int,
 ) -> str:
+    if OpenAI is None:  # pragma: no cover - runtime dependency exists in app
+        raise RuntimeError("当前环境未安装 openai 库")
     client = OpenAI(
         api_key=provider_config.get("apiKey", ""),
         base_url=_normalize_base_url("openai-responses", provider_config.get("baseUrl", "")),

@@ -14,8 +14,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence, Tuple
 
-from anthropic import Anthropic
-from openai import OpenAI
+try:
+    from anthropic import Anthropic
+except ImportError:  # pragma: no cover - dependency is available in the app runtime
+    Anthropic = None
+
+try:
+    from openai import OpenAI
+except ImportError:  # pragma: no cover - dependency is available in the app runtime
+    OpenAI = None
 
 from ai_analyzer import (
     SCORING_SYSTEM_PROMPT,
@@ -304,6 +311,8 @@ def _call_openai_completions(
     prompt: str,
     image_paths: Sequence[Tuple[str, Path]],
 ) -> str:
+    if OpenAI is None:  # pragma: no cover - runtime dependency exists in app
+        raise RuntimeError("当前环境未安装 openai 库")
     client = OpenAI(
         api_key=provider_config.get("apiKey", ""),
         base_url=_normalize_base_url("openai-completions", provider_config.get("baseUrl", "")),
@@ -332,6 +341,8 @@ def _call_openai_responses(
     prompt: str,
     image_paths: Sequence[Tuple[str, Path]],
 ) -> str:
+    if OpenAI is None:  # pragma: no cover - runtime dependency exists in app
+        raise RuntimeError("当前环境未安装 openai 库")
     client = OpenAI(
         api_key=provider_config.get("apiKey", ""),
         base_url=_normalize_base_url("openai-responses", provider_config.get("baseUrl", "")),
@@ -360,6 +371,8 @@ def _call_anthropic_messages(
     prompt: str,
     image_paths: Sequence[Tuple[str, Path]],
 ) -> str:
+    if Anthropic is None:  # pragma: no cover - runtime dependency exists in app
+        raise RuntimeError("当前环境未安装 anthropic 库")
     client = Anthropic(
         api_key=provider_config.get("apiKey", ""),
         base_url=_normalize_base_url("anthropic-messages", provider_config.get("baseUrl", "")),
