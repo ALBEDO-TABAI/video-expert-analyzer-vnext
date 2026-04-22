@@ -284,7 +284,9 @@ def _build_illustrate_user_message(markdown_text: str, catalog: Sequence[Dict[st
             "2. 同一段提及多个 Scene 时，只选最能代表段落核心论点的那张：优先看段落文字本身的侧重，其次参考「加权分」。",
             "3. 同一张图不要在连续 3 段之内重复出现；若只能用同一张，就跳过后出现的那次。",
             "4. `## 路由判断`、`## 视听剖析概览 / 视频结构图 / 视频内容架构总览` 等已带自有图示的模块不要再追加截图；"
-            "报告首尾的标题、生成时间、代码块、表格内部也不要插图。",
+            "报告首尾的标题、生成时间、代码块、表格内部也不要插图。"
+            "**特别注意**：报告末尾的 `> **视听对齐度**：…` 总结块、紧随其后的最终评分表（含「本片在这一维的表现」或「这一维在看什么」表头）"
+            "属于汇总区，禁止在它们之间或之后插入任何截图——即便那段文字里列出了 Scene 编号也不要配图。",
             "5. 图下方的小字说明（Scene 编号 · 画面要点）会由脚本根据「场景目录」自动补，不需要你写。"
             "`![alt](<截图路径>)` 的 alt 用 `Scene NNN`（NNN 为 3 位数 Scene 编号）即可，不要写画面描述。",
             "6. 截图路径必须来自下方目录，不要凭空编造；找不到对应 Scene 就跳过插图。",
@@ -337,6 +339,64 @@ def _validate_illustrated_markdown(
         window.extend(paths_in_block)
         if len(window) > 3:
             window = window[-3:]
+
+
+_TRAILING_BLOCKQUOTE_KEYWORD = "视听对齐度"
+_TRAILING_TABLE_KEYWORDS = ("本片在这一维", "这一维在看什么")
+
+
+def _find_trailing_zone_start(lines: List[str]) -> Optional[int]:
+    """Return the line index where the post-body trailing zone begins.
+
+    Trailing zone = the summary blockquote (`> **视听对齐度**：…`) plus the final
+    scoring table that follows. No agent-inserted screenshots belong here per
+    SKILL rule 14 #4 ("报告首尾、生成时间、表格内部不要插图")."""
+    for idx, raw in enumerate(lines):
+        s = raw.strip()
+        if s.startswith("> ") and _TRAILING_BLOCKQUOTE_KEYWORD in s:
+            return idx
+        if s.startswith("|") and any(kw in s for kw in _TRAILING_TABLE_KEYWORDS):
+            return idx
+    return None
+
+
+def _strip_trailing_orphan_images(illustrated: str, original: str) -> str:
+    """Drop agent-inserted screenshots placed inside the trailing zone.
+
+    The illustrate agent occasionally treats the summary blockquote's Scene
+    list as a paragraph and inserts an image after it. That image lands
+    between the summary and the final scoring table where it adds noise.
+    Pre-existing images (already in the body) are kept untouched."""
+    pre_existing = set(_extract_image_paths(original))
+    lines = illustrated.split("\n")
+    cutoff = _find_trailing_zone_start(lines)
+    if cutoff is None:
+        return illustrated
+
+    out: List[str] = lines[:cutoff]
+    i = cutoff
+    while i < len(lines):
+        line = lines[i]
+        match = _IMAGE_LINK_RE.search(line.strip())
+        if match and match.group(1).strip() not in pre_existing:
+            i += 1
+            while i < len(lines) and not lines[i].strip():
+                i += 1
+            if i < len(lines):
+                stripped = lines[i].strip()
+                if (
+                    stripped.startswith("*")
+                    and stripped.endswith("*")
+                    and not stripped.startswith("**")
+                    and "·" in stripped
+                ):
+                    i += 1
+                    if i < len(lines) and not lines[i].strip():
+                        i += 1
+            continue
+        out.append(line)
+        i += 1
+    return "\n".join(out)
 
 
 _CAPTION_PREFIX = "*Scene "
@@ -411,6 +471,7 @@ def _maybe_illustrate_markdown(
         return markdown_text
     user_message = _build_illustrate_user_message(markdown_text, catalog)
     illustrated = coordinator.request_illustrate(_ILLUSTRATE_SYSTEM_PROMPT, user_message)
+    illustrated = _strip_trailing_orphan_images(illustrated, markdown_text)
     _validate_illustrated_markdown(illustrated, markdown_text, catalog)
     return _annotate_image_captions(illustrated, markdown_text, catalog)
 
