@@ -1,8 +1,15 @@
 import json
+import shutil
 from pathlib import Path
 import sys
 
 import pytest
+
+
+requires_qlmanage = pytest.mark.skipif(
+    shutil.which("qlmanage") is None,
+    reason="child-type SVG→PNG conversion shells out to macOS qlmanage",
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -2292,6 +2299,7 @@ def test_child_type_svg_prompt_resolution(type_key: str, expected_prompt_name: s
         assert prompt_path.name == expected_prompt_name
 
 
+@requires_qlmanage
 def test_generate_child_type_svg_diagram_assets_writes_png_and_svg(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     payload = _child_type_payload("event_promo")
     route = payload["audiovisual_route"]
@@ -2329,6 +2337,7 @@ def test_generate_child_type_svg_diagram_assets_rejects_missing_prompt_dimension
         template_engine.generate_child_type_svg_diagram_assets(_event_brand_stub_agent_output(), payload, route, tmp_path)
 
 
+@requires_qlmanage
 def test_generate_child_type_svg_diagram_assets_inlines_styles_for_class_based_svg(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -2351,6 +2360,7 @@ def test_generate_child_type_svg_diagram_assets_inlines_styles_for_class_based_s
     assert "--color-border-tertiary: #D1D7E0;" in svg_text
 
 
+@requires_qlmanage
 def test_generate_audiovisual_outputs_prepend_child_type_svg_diagram(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     payload = _child_type_payload("event_promo")
 
@@ -2454,6 +2464,7 @@ def _stub_classification_cache_handoff(monkeypatch: pytest.MonkeyPatch, payload:
     )
 
 
+@requires_qlmanage
 def test_generate_outputs_marks_fresh_classification_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     payload = _minimal_payload_for_framework("event_brand_ad")
     summary_payload = build_classification_summary_payload(payload)
@@ -2489,6 +2500,7 @@ def test_generate_outputs_marks_fresh_classification_cache(tmp_path: Path, monke
     assert outputs["data"]["_classification_result_cache_status"] == "fresh"
 
 
+@requires_qlmanage
 def test_generate_outputs_ignores_stale_classification_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     payload = _with_child_route(_minimal_payload_for_framework("event_brand_ad"), "event_promo", "活动 / 促销广告")
     stale_payload = _minimal_payload_for_framework("concept_mv")
@@ -2524,6 +2536,7 @@ def test_generate_outputs_ignores_stale_classification_cache(tmp_path: Path, mon
     assert outputs["data"]["audiovisual_route"]["child_type"] == "event_promo"
 
 
+@requires_qlmanage
 def test_generate_outputs_ignores_unverifiable_classification_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     payload = _with_child_route(_minimal_payload_for_framework("event_brand_ad"), "event_promo", "活动 / 促销广告")
     unverifiable_result = {
