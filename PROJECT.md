@@ -284,6 +284,7 @@ video-expert-analyzer-vnext/
 │   ├── extract_subtitle_funasr.py     # ASR subtitle extraction
 │   ├── fetch_bilibili_subtitle.py     # Bilibili subtitle fetching
 │   ├── download_douyin.py             # Douyin video download
+│   ├── douyin_browser.mjs             # Local browser extract for Douyin WAF
 │   ├── xiaohongshu_downloader.py      # Xiaohongshu video download
 │   ├── lyric_ocr_refiner.py           # Music lyric OCR & correction
 │   ├── check_environment.py           # Environment checker
@@ -386,7 +387,7 @@ A shot with genuine emotion but slight camera shake is always preferred over a t
 |------|--------|------|
 | **Bilibili** | 完全支持 | yt-dlp 下载 + B站 API 字幕 |
 | **YouTube** | 完全支持 | yt-dlp 下载 |
-| **抖音** | 完全支持 | 专用下载器，无需浏览器 cookie |
+| **抖音** | 完全支持 | 专用下载器；网页风控时用本机 Chrome/Edge 无头会话提取，不需要登录 cookie |
 | **小红书** | 完全支持 | 专用下载器 |
 | **本地文件** | 完全支持 | FFmpeg 能解码的任何视频文件 |
 | **其他** | 可能支持 | 取决于 yt-dlp |

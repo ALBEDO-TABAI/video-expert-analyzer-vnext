@@ -736,6 +736,11 @@ def get_douyin_video_info(url: str) -> Dict:
     获取抖音视频信息
     """
     try:
+        if hasattr(DouyinDownloader, "fetch_douyin_info"):
+            info = DouyinDownloader.fetch_douyin_info(url, allow_browser=False)
+            if info.get("success"):
+                return info
+
         # 获取重定向后的URL
         full_url, user_agent, html = DouyinDownloader.get_redirect_url(url)
         if not full_url or not html:
@@ -744,7 +749,16 @@ def get_douyin_video_info(url: str) -> Dict:
         # 提取RENDER_DATA
         render_data = DouyinDownloader.extract_render_data(html)
         if not render_data:
-            return {"success": False, "title": "", "uploader": ""}
+            aweme_id = DouyinDownloader.extract_video_id(full_url or url)
+            return {
+                "success": True,
+                "title": f"抖音视频_{aweme_id or url.split('/')[-1][:20]}",
+                "uploader": "未知作者",
+                "channel": "",
+                "duration": "",
+                "view_count": "",
+                "platform": "douyin",
+            }
 
         # download_douyin.py 已经返回 Python dict；兼容旧版字符串输出。
         if isinstance(render_data, dict):

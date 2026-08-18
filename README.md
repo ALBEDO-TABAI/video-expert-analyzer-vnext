@@ -41,7 +41,7 @@
 |----------|--------|-------|
 | 🎬 **Bilibili** | ✅ Full Support | yt-dlp download + Bilibili API subtitles |
 | 📺 **YouTube** | ✅ Full Support | yt-dlp download |
-| 🎵 **Douyin (抖音)** | ✅ Full Support | Dedicated downloader (share links, no cookies needed) |
+| 🎵 **Douyin (抖音)** | ✅ Full Support | Dedicated downloader; uses local Chrome/Edge when the public page is WAF-gated (no login cookie) |
 | 📕 **Xiaohongshu (小红书)** | ✅ Full Support | Dedicated downloader |
 | 🌍 **Others** | ⚠️ May Work | Depends on yt-dlp support |
 
@@ -392,7 +392,7 @@ A shot with genuine emotion but slight shake is better than a perfect but empty 
 |------|---------|------|
 | 🎬 **Bilibili** | ✅ 完全支持 | yt-dlp 下载 + B站 API 字幕 |
 | 📺 **YouTube** | ✅ 完全支持 | yt-dlp 下载 |
-| 🎵 **抖音 (Douyin)** | ✅ 完全支持 | 专用下载器（分享链接无需 cookie） |
+| 🎵 **抖音 (Douyin)** | ✅ 完全支持 | 专用下载器；网页风控时用本机 Chrome/Edge 无头会话提取（无需登录 cookie） |
 | 📕 **小红书 (Xiaohongshu)** | ✅ 完全支持 | 专用下载器 |
 | 🌍 **其他平台** | ⚠️ 可能支持 | 取决于 yt-dlp 支持情况 |
 
